@@ -3,3 +3,5 @@ models
 __pycache__/
 models
 training_log
+finetuning_encoder/gt_mask_generation/custom_model
+finetuning_encoder/gt_mask_generation/basic_model
