@@ -3,8 +3,8 @@ import os
 from PIL import Image
 import torch
 import sys
-
-from Jack.step_vet_train.query_strategy.encoder.encoder import CustomSamEncoder
+sys.path.append('/home/minelab/desktop/')
+from Jack.step_vet_train.query_strategy.encoder.utils.feature_extract import FeatureExtractor
 
 def visualize_features(features: torch.Tensor, original_image: Image.Image, save_dir: str):
     """
@@ -58,8 +58,8 @@ if __name__ == "__main__":
     test_image = "/home/minelab/desktop/Jack/step_vet_train/visualization/results/encoder/origin.jpg"
     
     # 특징 추출
-    encoder = CustomSamEncoder(checkpoint_path=checkpoint_path, gpu_id=3)
-    features, original_image = encoder.extract_features(test_image)
+    extractor = FeatureExtractor(checkpoint_path=checkpoint_path, gpu_id=3)
+    features, original_image = extractor.extract_features(test_image)
     
     # 시각화
     visualize_features(features, original_image, save_dir)

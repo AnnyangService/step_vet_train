@@ -1,8 +1,7 @@
 import torch
 from transformers import SamModel, SamProcessor
-from PIL import Image
 
-class CustomSamEncoder:
+class SamEncoderLoader:
     def __init__(self, model_name="facebook/sam-vit-base", checkpoint_path=None, gpu_id=3):
         # GPU 설정
         if torch.cuda.is_available():
@@ -40,33 +39,6 @@ class CustomSamEncoder:
         self.model.load_state_dict(current_state_dict)
         print(f"Loaded custom checkpoint from {checkpoint_path}")
 
-    def extract_features(self, image_path):
-        """
-        이미지를 입력으로 받아서 인코더를 통과시키고 특징을 추출합니다.
-        Args:
-            image_path (str): 이미지 파일 경로
-        Returns:
-            tuple: (features, original_image)
-                - features: 인코더 출력값 (torch.Tensor)
-                - original_image: 원본 이미지 (PIL.Image)
-        """
-        # 이미지 로드 및 전처리
-        image = Image.open(image_path)
-        inputs = self.processor(
-            images=image,
-            return_tensors="pt",
-            do_resize=True,
-            size={"longest_edge": 1024},
-            do_normalize=True
-        )
-        
-        # GPU로 이동
-        inputs = {k: v.to(self.device) if isinstance(v, torch.Tensor) else v 
-                 for k, v in inputs.items()}
-        
-        # 인코더 통과
-        with torch.no_grad():
-            outputs = self.vision_encoder(inputs["pixel_values"])
-            features = outputs.last_hidden_state.cpu()
-            
-        return features, image
+    def get_encoder_and_processor(self):
+        """인코더와 프로세서를 반환합니다."""
+        return self.vision_encoder, self.processor, self.device
