@@ -4,6 +4,8 @@
 
 This project must be executed in the following sequential order:
 
+(임시라서 제대로 새로 작성해야 함.)
+
 1. **Generation**
    - First step for data generation
    - Execute these scripts in the `generation/` directory:
