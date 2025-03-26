@@ -7,12 +7,16 @@ from pathlib import Path
 # Define paths
 base_dir = Path('/home/minelab/desktop/Jack/step_vet_train/datasets')
 source_paths = {
-    'blepharitis': base_dir / 'filtered/blepharitis/filtered_images',
-    'keratitis': base_dir / 'filtered/keratitis/filtered_images'
+    'blepharitis': base_dir / 'matching_filtered/blepharitis/filtered_images',
+    'keratitis': base_dir / 'matching_filtered/keratitis/filtered_images'
+}
+origin_paths = {
+    'blepharitis': base_dir / 'origin/blepharitis',
+    'keratitis': base_dir / 'origin/keratitis'
 }
 dest_paths = {
-    'blepharitis': base_dir / 'dataset/blepharitis',
-    'keratitis': base_dir / 'dataset/keratitis'
+    'blepharitis': base_dir / 'refined_matching/refined_dataset/blepharitis',
+    'keratitis': base_dir / 'refined_matching/refined_dataset/keratitis'
 }
 num_images = {
     'blepharitis': 2150,
@@ -22,8 +26,12 @@ num_images = {
 def copy_random_images(source_dir, dest_dir, count):
     """Copy random images from source_dir to dest_dir"""
     
-    # Get all PNG images in the source directory
-    all_images = [f for f in os.listdir(source_dir) if f.endswith('.png')]
+    # Create destination directory if it doesn't exist
+    os.makedirs(dest_dir, exist_ok=True)
+    
+    # Get all image files in the source directory (png, jpg, jpeg)
+    image_extensions = ['.png', '.jpg', '.jpeg', '.JPG', '.JPEG', '.PNG']
+    all_images = [f for f in os.listdir(source_dir) if os.path.splitext(f)[1].lower() in [ext.lower() for ext in image_extensions]]
     total_images = len(all_images)
     print(f"Found {total_images} images in {source_dir}")
     
@@ -47,6 +55,31 @@ def copy_random_images(source_dir, dest_dir, count):
     
     return copied_count
 
+def copy_all_images(source_dir, dest_dir):
+    """Copy all images from source_dir to dest_dir"""
+    
+    # Create destination directory if it doesn't exist
+    os.makedirs(dest_dir, exist_ok=True)
+    
+    # Get all image files in the source directory (png, jpg, jpeg)
+    image_extensions = ['.png', '.jpg', '.jpeg', '.JPG', '.JPEG', '.PNG']
+    all_images = [f for f in os.listdir(source_dir) if os.path.splitext(f)[1].lower() in [ext.lower() for ext in image_extensions]]
+    total_images = len(all_images)
+    print(f"Found {total_images} images in {source_dir}")
+    
+    # Copy all images
+    for img in all_images:
+        src_path = os.path.join(source_dir, img)
+        dst_path = os.path.join(dest_dir, img)
+        shutil.copy2(src_path, dst_path)
+    
+    # Count files in destination directory after copy
+    copied_count = len([f for f in os.listdir(dest_dir) if os.path.isfile(os.path.join(dest_dir, f))])
+    print(f"Copied {len(all_images)} images from origin to {dest_dir}")
+    print(f"Total files in {dest_dir}: {copied_count}")
+    
+    return copied_count
+
 def main():
     results = {}
     
@@ -54,10 +87,19 @@ def main():
     for category in ['blepharitis', 'keratitis']:
         print(f"\nProcessing {category}...")
         source_dir = source_paths[category]
+        origin_dir = origin_paths[category]
         dest_dir = dest_paths[category]
         count = num_images[category]
         
-        results[category] = copy_random_images(source_dir, dest_dir, count)
+        # First copy random filtered images
+        filtered_count = copy_random_images(source_dir, dest_dir, count)
+        
+        # Then copy all images from origin directory
+        print(f"\nCopying original {category} images...")
+        origin_count = copy_all_images(origin_dir, dest_dir)
+        
+        # Store total count
+        results[category] = len([f for f in os.listdir(dest_dir) if os.path.isfile(os.path.join(dest_dir, f))])
     
     # Print summary
     print("\n===== Summary =====")

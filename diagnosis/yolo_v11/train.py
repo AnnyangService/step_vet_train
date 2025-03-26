@@ -5,7 +5,7 @@ def train_model(
     epochs=100,
     batch_size=16,
     imgsz=512,
-    project_name="/home/minelab/desktop/Jack/step_vet_train/models/yolo/yolo_v11_cls",
+    project_name="/home/minelab/desktop/Jack/step_vet_train/models/yolo/matching/yolo_v11_cls_anomaly_detection",
     device=[2, 3]
 ):
     """

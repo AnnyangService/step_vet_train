@@ -6,7 +6,7 @@ from collections import defaultdict
 
 # 원본 데이터셋 경로와 출력 경로 설정
 ORIGIN_DIR = Path("/home/minelab/desktop/Jack/step_vet_train/datasets/origin")
-OUTPUT_DIR = Path("/home/minelab/desktop/Jack/step_vet_train/datasets/origin/normal")
+OUTPUT_DIR = Path("/home/minelab/desktop/Jack/step_vet_train/datasets/refined_matching/refined_dataset/normal")
 
 # 출력 디렉토리가 없으면 생성
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -98,6 +98,5 @@ def collect_negative_images(target_count=3100):
     }
 
 if __name__ == "__main__":
-    # 3100장의 이미지 수집 실행
     result = collect_negative_images(3100)
     print(result) 

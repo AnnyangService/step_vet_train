@@ -44,9 +44,9 @@ def main():
     
     # 목적지 디렉토리 경로
     dest_dirs = [
-        "/home/minelab/desktop/Jack/step_vet_train/datasets/dataset/각막궤양",
-        "/home/minelab/desktop/Jack/step_vet_train/datasets/dataset/각막부골편",
-        "/home/minelab/desktop/Jack/step_vet_train/datasets/dataset/결막염"
+        "/home/minelab/desktop/Jack/step_vet_train/datasets/refined_matching/refined_dataset/각막궤양",
+        "/home/minelab/desktop/Jack/step_vet_train/datasets/refined_matching/refined_dataset/각막부골편",
+        "/home/minelab/desktop/Jack/step_vet_train/datasets/refined_matching/refined_dataset/결막염"
     ]
     
     # 각 질병 카테고리별로 이미지 복사
