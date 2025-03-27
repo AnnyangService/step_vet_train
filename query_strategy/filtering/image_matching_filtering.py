@@ -76,6 +76,10 @@ class ImageMatcher:
             # 각 생성 이미지와의 유사도 계산
             similarities = []
             for gen_path, gen_vector in self.generated_vectors.items():
+                # 이미 사용된 이미지는 건너뛰기
+                if gen_path in used_generated_images:
+                    continue
+                    
                 similarity = self.calculate_similarity(origin_vector, gen_vector)
                 similarities.append((gen_path, similarity))
             

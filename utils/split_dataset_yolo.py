@@ -34,7 +34,8 @@ def split_dataset(
     
     # Create YOLO dataset structure
     yolo_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/yolo_dataset"
-    if yolo_dir.exists():
+    yolo_dir = Path(yolo_dir)
+    if os.path.exists(yolo_dir):
         shutil.rmtree(yolo_dir)
     yolo_dir.mkdir(exist_ok=True)
     
@@ -103,21 +104,30 @@ def split_dataset(
         
         # Calculate how many images we need for validation and training
         remaining_needed = class_target - target_test
-        available_images = remaining_non_seed + seed_images
         
-        if len(available_images) < remaining_needed:
-            print(f"Warning: Not enough images for {class_name}. Need {remaining_needed} more but only have {len(available_images)}")
-            # Use what we have
-            val_count = int(len(available_images) * (val_ratio / (train_ratio + val_ratio)))
-            train_count = len(available_images) - val_count
-        else:
-            # Use exactly what we need
-            val_count = target_val
-            train_count = target_train
+        # First try to allocate as many non-seed images as possible to validation and training
+        val_count = min(target_val, len(remaining_non_seed))
+        val_images = remaining_non_seed[:val_count]
         
-        # Split remaining images between train and validation
-        val_images = available_images[:val_count]
-        train_images = available_images[val_count:val_count + train_count]
+        train_count = min(target_train, len(remaining_non_seed) - val_count)
+        train_images = remaining_non_seed[val_count:val_count + train_count]
+        
+        # If there aren't enough non-seed images, use seed images to fill the gap
+        seed_val_count = target_val - val_count
+        if seed_val_count > 0 and seed_val_count <= len(seed_images):
+            val_images.extend(seed_images[:seed_val_count])
+            seed_images = seed_images[seed_val_count:]
+        
+        seed_train_count = target_train - train_count
+        if seed_train_count > 0 and seed_train_count <= len(seed_images):
+            train_images.extend(seed_images[:seed_train_count])
+        
+        # Check if we still don't have enough images
+        if len(val_images) < target_val or len(train_images) < target_train:
+            print(f"Warning: Not enough images for {class_name}.")
+            print(f"  - Train: {len(train_images)}/{target_train}")
+            print(f"  - Val: {len(val_images)}/{target_val}")
+            print(f"  - Test: {len(test_images)}/{target_test}")
         
         # Copy images to respective directories
         for img in train_images:
@@ -147,15 +157,15 @@ if __name__ == "__main__":
     source_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/refined_matching/refined_dataset"
     
     class_targets = {
-        "blepharitis": 3100,
-        "keratitis": 3100,
-        "normal": 3100,
-        "각막궤양": 3100,
-        "각막부골편": 3100,
-        "결막염": 3100
+        "blepharitis": 1500,
+        "keratitis": 1500,
+        "normal": 1500,
+        "각막궤양": 1500,
+        "각막부골편": 1500,
+        "결막염": 1500
     }
     
-    fixed_test_count = 310  # For example, 310 test images per class
+    fixed_test_count = 150  
     
     split_dataset(source_dir, class_targets=class_targets, fixed_test_count=fixed_test_count)
     
