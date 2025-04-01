@@ -237,7 +237,7 @@ def evaluate_model(
 
 if __name__ == "__main__":
     # Configuration
-    model_path = "/home/minelab/desktop/Jack/step_vet_train/models/yolo/matching/yolo_v11_cls_anomaly_detection/train/weights/best.pt"
+    model_path = "/home/minelab/desktop/Jack/step_vet_train/models/yolo/matching/yolo_v11_cls/train/weights/best.pt"
     data_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/yolo_dataset"
     
     # Evaluate the model

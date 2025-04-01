@@ -8,15 +8,17 @@ This project must be executed in the following sequential order:
 
 1. **Generation**
    - First step for data generation
-   - Execute these scripts in the `generation/` directory:
-   ```bash
-   cd generation
-   python data_preparation.py  # Prepare your dataset
-   python generate_blepharitis.py  # Generate blepharitis data
-   python generate_keratitis.py  # Generate keratitis data
-   python train_blepharitis.py  # Train on blepharitis data
-   python train_keratitis.py  # Train on keratitis data
+   - Execute these scripts in the `generation/datapreparation` 실행, 생성할 데이터 아래와 같이 파라미터 설정
    ```
+   disease_mapping = {
+      '안검염': 'blepharitis',
+      '비궤양성각막염': 'keratitis'
+    }
+    ```
+   - 2. generation/train.py 실행, 체크포인트에서 오류나면 100번째 줄 경로 변경하기
+   - 3. generation/generate.py 실행
+    
+
 
 2. **Finetuning Encoder**
    - Step for fine-tuning the encoder model
