@@ -6,7 +6,7 @@ import csv
 from datetime import datetime
 from dataclasses import dataclass
 from typing import Tuple, Optional
-from Jack.step_vet_train.finetuning_sam.utils.mask_processor import BlueMaskExtractor
+from Jack.step_vet_train.finetuning_encoder.utils.mask_processor import BlueMaskExtractor
 
 @dataclass
 class MaskQualityMetrics:

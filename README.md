@@ -19,28 +19,23 @@ This project must be executed in the following sequential order:
    - 3. generation/generate.py 실행
     
 
-
 2. **Finetuning Encoder**
-   - Step for fine-tuning the encoder model
-   - Execute these scripts in the `finetuning_encoder/` directory:
-   ```bash
-   cd finetuning_encoder
-   python prepare_data.py  # Prepare data for encoder fine-tuning
-   python train.py  # Run the encoder fine-tuning process
-   python evaluate.py  # Evaluate the fine-tuned encoder
-   ```
+   1. finetuning_encoder/gt_mask_generation/mask_generation_train.py을 마스크 생성 모델 학습
+   2. finetuning_encoder/gt_mask_generation/mask_generation.py를 실행해서 마스크 생성
+   3. finetuning_encoder/gt_mask_generation/mask_classification.py를 실행해서 마스크 분류
+   4. finetuning_encoder/finetuning.py를 실행해서 인코더 파인튜닝
+   5. visuialization/before_channel_selection.py로 인코더 파인튜닝 결과 확인 가능
 
 3. **Query Strategy**
-   - Final step for implementing query strategies
-   - Execute these scripts in the `query_strategy/` directory:
-   ```bash
-   cd query_strategy
-   python active_learning.py  # Run active learning query strategy
-   python run.py  # Execute the main query processing
-   python evaluate_results.py  # Evaluate your query strategy results
-   ```
+   - 제일 먼저 벡터화 query_strategy/encoder/vectorization.py 실행해서 이미지들 벡터화, 97, 98 line을 보면 input, output을 설정할 수 있는데 input 대상은 generated_keratitis, keratitis, generated_blepharitis, blepharitis 이런식으로 지정하면 됨.
+   - 다음은 query_staretegy/filtering/image_matching_filtering.py 혹은 query_staretegy/filtering/thresholding_filtering.py, 앞에꺼는 이미지 하나당 유사한 두 개의 이미지 뽑는 방법, 뒤에꺼는 원본 이미지의 평균 벡터와 모든 생성된 이미지 비교해서 코사인 유사도의 평균을 잡고, 그거보다 낮은 이미지 제거하는 방법
 
-Each step must be executed sequentially, as the output from previous steps serves as input for subsequent steps.
+4. **진단 모델 학습 - YOLO**
+   - YOLO 학습을 위한 데이터셋 정제
+      1. utils/refine_rare_disease.py로 필터링된 이미지를 가지고 rare disease 3100장으로 맞춤
+      2. utils/refine_normal_disease.py 로 normal 데이터셋 필요한 개수만큼 정제(일반 3100, anmaly detection 기법 사용 시 9300)
+      3. utils/refine_other_disease.py로 그 외 질병들 3100장으로 맞춤
+      4. split_dataset_yolo.py로 train/val/test를 yolo 데이터 폼으로 맞추는데, val, test는 생성된 이미지가 포함되지 않아야 함. 따라서 클래스 균형 유지되고 원본 이미지 비율을 50% 정도로 맞추는 범위에서 1500~3100으로 찾아봐야함. 예를 들어 3100장으로 해버리면 test, val에 원본을 다 밀어넣다보니 train에 생성된 이미지 비율이 80% 가까이 됨. 적당한건 1500정도 추천 (**여기 다시 정리하기 실행해보면 감 잡힘**)
 
 ## Environment Setup
 
