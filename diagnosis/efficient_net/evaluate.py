@@ -10,20 +10,24 @@ import os
 import numpy as np
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, classification_report
 
+# 한글 폰트 설정
+plt.rcParams['font.family'] = 'NanumGothic'  # 나눔고딕 폰트 사용
+plt.rcParams['axes.unicode_minus'] = False  # 마이너스 기호 깨짐 방지
+
 # 데이터 경로 설정
-data_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/yolo_dataset"
+data_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/dataset"
 val_dir = f"{data_dir}/val"
 test_dir = f"{data_dir}/test"
 
 # 하이퍼파라미터 설정
-model_type = "efficientnet-b0"  # EfficientNet 모델 타입
-batch_size = 16
+model_type = "efficientnet-b2"  # EfficientNet 모델 타입
+batch_size = 32  
 img_size = 224  # EfficientNet에서 요구하는 입력 크기
 # GPU 설정 (2번과 3번 GPU 사용)
 os.environ["CUDA_VISIBLE_DEVICES"] = "2,3"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model_path = "/home/minelab/desktop/Jack/step_vet_train/diagnosis/efficient_net/runs/best_efficientnet_model.pth"
-output_dir = "/home/minelab/desktop/Jack/step_vet_train/diagnosis/efficient_net/runs/evaluation"
+model_path = "/home/minelab/desktop/Jack/step_vet_train/models/efficient_net/generated/1400/best_model.pth"
+output_dir = "/home/minelab/desktop/Jack/step_vet_train/models/efficient_net/generated/1400/evaluation"
 os.makedirs(output_dir, exist_ok=True)
 
 # 데이터셋 전처리
@@ -58,7 +62,8 @@ def load_model(model_path):
     model = EfficientNet.from_pretrained(model_type, num_classes=num_classes)
     
     # 모델 로드
-    state_dict = torch.load(model_path)
+    checkpoint = torch.load(model_path)
+    state_dict = checkpoint['model_state_dict']
     
     # DataParallel로 저장된 모델인 경우 처리
     if list(state_dict.keys())[0].startswith('module.'):

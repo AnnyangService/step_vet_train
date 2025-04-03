@@ -109,34 +109,34 @@ class EarlyStopping:
         self.min_delta = min_delta
         self.verbose = verbose
         self.counter = 0
-        self.best_loss = None
+        self.best_acc = None
         self.early_stop = False
-        self.val_loss_min = float('inf')
+        self.val_acc_max = float('-inf')
 
-    def __call__(self, val_loss, model, epoch, optimizer, path):
-        if self.best_loss is None:
-            self.best_loss = val_loss
-            self.save_checkpoint(val_loss, model, epoch, optimizer, path)
-        elif val_loss > self.best_loss + self.min_delta:
+    def __call__(self, val_acc, model, epoch, optimizer, path):
+        if self.best_acc is None:
+            self.best_acc = val_acc
+            self.save_checkpoint(val_acc, model, epoch, optimizer, path)
+        elif val_acc < self.best_acc + self.min_delta:
             self.counter += 1
             if self.verbose:
                 print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
             if self.counter >= self.patience:
                 self.early_stop = True
         else:
-            self.best_loss = val_loss
+            self.best_acc = val_acc
             self.counter = 0
-            self.val_loss_min = val_loss
-            self.save_checkpoint(val_loss, model, epoch, optimizer, path)
+            self.val_acc_max = val_acc
+            self.save_checkpoint(val_acc, model, epoch, optimizer, path)
 
-    def save_checkpoint(self, val_loss, model, epoch, optimizer, path):
+    def save_checkpoint(self, val_acc, model, epoch, optimizer, path):
         if self.verbose:
-            print(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}). Saving model ...')
+            print(f'Validation accuracy increased ({self.val_acc_max:.6f} --> {val_acc:.6f}). Saving model ...')
         torch.save({
             'epoch': epoch,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-            'val_loss': val_loss,
+            'val_acc': val_acc,
         }, path)
 
 def train_model(model, criterion, optimizer, train_loader, val_loader, epochs, scheduler=None):
@@ -204,7 +204,7 @@ def train_model(model, criterion, optimizer, train_loader, val_loader, epochs, s
 
             # Early Stopping 체크
             if phase == 'val':
-                early_stopping(epoch_loss, model, epoch, optimizer, 
+                early_stopping(epoch_acc, model, epoch, optimizer, 
                              os.path.join(output_dir, 'best_model.pth'))
                 if early_stopping.early_stop:
                     print("Early stopping triggered")
