@@ -6,7 +6,7 @@ from pathlib import Path
 def create_directory(directory):
     os.makedirs(directory, exist_ok=True)
 
-def select_random_images(source_dir, dest_dir, count=3100):
+def select_random_images(source_dir, dest_dir, count=900):
     # 소스 디렉토리가 존재하는지 확인
     if not os.path.exists(source_dir):
         print(f"Not exist source directory: {source_dir}")
@@ -39,14 +39,18 @@ def main():
     source_dirs = [
         "/home/minelab/desktop/Jack/step_vet_train/datasets/origin/각막궤양/유",
         "/home/minelab/desktop/Jack/step_vet_train/datasets/origin/각막부골편/유",
-        "/home/minelab/desktop/Jack/step_vet_train/datasets/origin/결막염/유"
+        "/home/minelab/desktop/Jack/step_vet_train/datasets/origin/결막염/유",
+        # "/home/minelab/desktop/Jack/step_vet_train/datasets/origin/비궤양성각막염/유",
+        # "/home/minelab/desktop/Jack/step_vet_train/datasets/origin/안검염/유"
     ]
     
     # 목적지 디렉토리 경로
     dest_dirs = [
         "/home/minelab/desktop/Jack/step_vet_train/datasets/refined_matching/refined_dataset/각막궤양",
         "/home/minelab/desktop/Jack/step_vet_train/datasets/refined_matching/refined_dataset/각막부골편",
-        "/home/minelab/desktop/Jack/step_vet_train/datasets/refined_matching/refined_dataset/결막염"
+        "/home/minelab/desktop/Jack/step_vet_train/datasets/refined_matching/refined_dataset/결막염",
+        # "/home/minelab/desktop/Jack/step_vet_train/datasets/refined_matching/refined_dataset/비궤양성각막염",
+        # "/home/minelab/desktop/Jack/step_vet_train/datasets/refined_matching/refined_dataset/안검염"
     ]
     
     # 각 질병 카테고리별로 이미지 복사

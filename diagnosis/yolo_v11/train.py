@@ -5,7 +5,7 @@ def train_model(
     epochs=100,
     batch_size=16,
     imgsz=512,
-    project_name="/home/minelab/desktop/Jack/step_vet_train/models/yolo/matching/yolo_v11_cls",
+    project_name="/home/minelab/desktop/Jack/step_vet_train/models/yolo/generated/1400",
     device=[2, 3]
 ):
     """
@@ -34,6 +34,7 @@ def train_model(
         imgsz=imgsz,
         project=project_name,
         device=device,
+        patience=10,
         task='classify' 
     )
     
@@ -48,6 +49,6 @@ if __name__ == "__main__":
         data_path=data_path,
         epochs=100,
         batch_size=16,
-        imgsz=512,
+        # imgsz=512,
         device=[2, 3]
     )

@@ -35,7 +35,8 @@ This project must be executed in the following sequential order:
       1. utils/refine_rare_disease.py로 필터링된 이미지를 가지고 rare disease 3100장으로 맞춤
       2. utils/refine_normal_disease.py 로 normal 데이터셋 필요한 개수만큼 정제(일반 3100, anmaly detection 기법 사용 시 9300)
       3. utils/refine_other_disease.py로 그 외 질병들 3100장으로 맞춤
-      4. split_dataset_yolo.py로 train/val/test를 yolo 데이터 폼으로 맞추는데, val, test는 생성된 이미지가 포함되지 않아야 함. 따라서 클래스 균형 유지되고 원본 이미지 비율을 50% 정도로 맞추는 범위에서 1500~3100으로 찾아봐야함. 예를 들어 3100장으로 해버리면 test, val에 원본을 다 밀어넣다보니 train에 생성된 이미지 비율이 80% 가까이 됨. 적당한건 1500정도 추천 (**여기 다시 정리하기 실행해보면 감 잡힘**)
+      4. split_dataset_yolo.py로 train/val/test를 yolo 데이터 폼으로 맞추는데, val, test는 생성된 이미지가 포함되지 않아야 함. 그래서 생성해서 모두 3100장으로 맞추긴 했지만, 3100장으로 코드를 돌려버리면 train용 blepharitis 질병은 거의 모두 생성된 이미지만 들어있어서 3100보다는 낮은 값 추천 디폴트는 1500
+      5. diagnosis/yolo_v11/train.py 로 학습, diagnosis/yolo_v11/evaluate.py로 평가
 
 ## Environment Setup
 
