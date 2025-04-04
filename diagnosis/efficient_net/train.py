@@ -147,7 +147,7 @@ def train_model(model, criterion, optimizer, train_loader, val_loader, epochs, s
     val_accs = []
     
     # Early Stopping 초기화
-    early_stopping = EarlyStopping(patience=10, verbose=True)
+    early_stopping = EarlyStopping(patience=30, verbose=True)
     
     for epoch in range(epochs):
         start_time = time.time()

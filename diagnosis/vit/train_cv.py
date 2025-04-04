@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
-from efficientnet_pytorch import EfficientNet
+from transformers import ViTForImageClassification, ViTConfig
 import json
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -18,18 +18,18 @@ data_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/dataset"
 train_dir = f"{data_dir}/train"
 
 # 하이퍼파라미터 설정
-model_type = "efficientnet-b2"
+model_name = "google/vit-base-patch16-224"
 epochs = 100
 batch_size = 32
-img_size = 224
-learning_rate = 0.0005
+img_size = 224  # ViT 기본 이미지 크기
+learning_rate = 0.0001
 weight_decay = 1e-4
 n_splits = 5  # 5-fold cross validation
 
 # GPU 설정
 os.environ["CUDA_VISIBLE_DEVICES"] = "2,3"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-output_dir = "/home/minelab/desktop/Jack/step_vet_train/models/efficient_net/generated_cv/1400"
+output_dir = "/home/minelab/desktop/Jack/step_vet_train/models/vit/generated_cv/1400"
 os.makedirs(output_dir, exist_ok=True)
 
 # 데이터셋 전처리
@@ -60,6 +60,10 @@ class_names = train_dataset.classes
 print(f"클래스 이름: {class_names}")
 print(f"클래스 수: {num_classes}")
 
+# id2label 및 label2id 생성
+id2label = {i: class_name for i, class_name in enumerate(class_names)}
+label2id = {class_name: i for i, class_name in enumerate(class_names)}
+
 # 클래스별 이미지 수 계산 및 가중치 계산 함수
 def calculate_class_weights(dataset):
     class_counts = {}
@@ -78,7 +82,7 @@ def calculate_class_weights(dataset):
 
 # Early Stopping 클래스
 class EarlyStopping:
-    def __init__(self, patience=10, min_delta=0, verbose=True):
+    def __init__(self, patience=30, min_delta=0, verbose=True):
         self.patience = patience
         self.min_delta = min_delta
         self.verbose = verbose
@@ -143,7 +147,8 @@ def train_fold(model, train_loader, val_loader, criterion, optimizer, scheduler,
                 labels = labels.to(device)
 
                 with torch.set_grad_enabled(phase == 'train'):
-                    outputs = model(inputs)
+                    # ViT 모델 출력 처리
+                    outputs = model(inputs).logits
                     _, preds = torch.max(outputs, 1)
                     loss = criterion(outputs, labels)
 
@@ -224,7 +229,7 @@ def train_fold(model, train_loader, val_loader, criterion, optimizer, scheduler,
         "epochs": epochs,
         "batch_size": batch_size,
         "learning_rate": learning_rate,
-        "model_type": model_type,
+        "model_name": model_name,
         "num_classes": num_classes,
         "class_names": class_names
     }
@@ -284,9 +289,20 @@ def main():
         train_loader = DataLoader(train_subsampler, batch_size=batch_size, shuffle=True, num_workers=4)
         val_loader = DataLoader(val_subsampler, batch_size=batch_size, shuffle=False, num_workers=4)
         
-        # 모델 초기화
-        model = EfficientNet.from_pretrained(model_type, num_classes=num_classes)
-        model._dropout = nn.Dropout(0.5)
+        # ViT 모델 설정
+        config = ViTConfig.from_pretrained(
+            model_name,
+            num_labels=num_classes,
+            id2label=id2label,
+            label2id=label2id
+        )
+        
+        # 모델 생성
+        model = ViTForImageClassification.from_pretrained(
+            model_name,
+            config=config,
+            ignore_mismatched_sizes=True
+        )
         model = model.to(device)
         
         if torch.cuda.device_count() > 1:
@@ -316,7 +332,7 @@ def main():
         "batch_size": batch_size,
         "learning_rate": learning_rate,
         "weight_decay": weight_decay,
-        "model_type": model_type,
+        "model_name": model_name,
         "num_classes": num_classes,
         "class_names": class_names,
         "seed_images_count": len(seed_indices),
@@ -337,7 +353,7 @@ def main():
 
 if __name__ == "__main__":
     print(f"Using device: {device}")
-    print(f"Starting {n_splits}-fold cross validation with {model_type}")
+    print(f"Starting {n_splits}-fold cross validation with {model_name}")
     print(f"Train dataset: {len(train_dataset)} images")
     
     main()

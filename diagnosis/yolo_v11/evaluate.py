@@ -8,30 +8,9 @@ from datetime import datetime
 import platform
 import matplotlib as mpl
 
-# 운영체제에 따른 한글 폰트 설정
-def set_korean_font():
-    system = platform.system()
-    if system == 'Darwin':  # macOS
-        plt.rcParams['font.family'] = 'AppleGothic'
-    elif system == 'Windows':
-        plt.rcParams['font.family'] = 'Malgun Gothic'
-    elif system == 'Linux':
-        # 리눅스에서 사용할 한글 폰트 설정
-        try:
-            # NanumGothic 폰트 사용 시도
-            plt.rcParams['font.family'] = 'NanumGothic'
-        except:
-            try:
-                # 또는 다른 한글 폰트 시도
-                plt.rcParams['font.family'] = 'NanumBarunGothic'
-            except:
-                print("한글 폰트를 찾을 수 없습니다. 시스템에 한글 폰트를 설치하세요.")
-                plt.rcParams['font.family'] = 'DejaVu Sans'
-    
-    plt.rcParams['axes.unicode_minus'] = False
-
-# 한글 폰트 설정 적용
-set_korean_font()
+# 한글 폰트 설정
+plt.rcParams['font.family'] = 'NanumGothic'  # 나눔고딕 폰트 사용
+plt.rcParams['axes.unicode_minus'] = False  # 마이너스 기호 깨짐 방지
 
 def evaluate_model(
     model_path,
@@ -57,8 +36,7 @@ def evaluate_model(
     """
     # Create save directory with timestamp if not provided
     if save_dir is None:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        save_dir = f"/home/minelab/desktop/Jack/step_vet_train/results/evaluation_{timestamp}"
+        save_dir = f"/home/minelab/desktop/Jack/step_vet_train/models/yolo/generated/1500/evaluation"
     
     os.makedirs(save_dir, exist_ok=True)
     
@@ -237,8 +215,8 @@ def evaluate_model(
 
 if __name__ == "__main__":
     # Configuration
-    model_path = "/home/minelab/desktop/Jack/step_vet_train/models/yolo/generated/1400/train/weights/best.pt"
-    data_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/yolo_dataset"
+    model_path = "/home/minelab/desktop/Jack/step_vet_train/models/yolo/generated/1500/train/weights/best.pt"
+    data_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/dataset"
     
     # Evaluate the model
     results = evaluate_model(
