@@ -24,7 +24,7 @@ def split_dataset(
     random.seed(seed)
     
     # Create dataset structure
-    dataset_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/dataset"
+    dataset_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/dataset_origin_3100"
     dataset_dir = Path(dataset_dir)
     if os.path.exists(dataset_dir):
         shutil.rmtree(dataset_dir)
@@ -115,15 +115,15 @@ def split_dataset(
         print(f"  Total: {total}")
 
 if __name__ == "__main__":
-    source_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/refined_matching/refined_dataset"
+    source_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/refined_dataset/origin"
     
     class_targets = {
-        "blepharitis": 1400,
-        "keratitis": 1400,
-        "normal": 1400,
-        "각막궤양": 1400,
-        "각막부골편": 1400,
-        "결막염": 1400
+        "blepharitis": 3100,
+        "keratitis": 3100,
+        "normal": 3100,
+        "각막궤양": 3100,
+        "각막부골편": 3100,
+        "결막염": 3100
     }
     
     split_dataset(source_dir, class_targets=class_targets)
