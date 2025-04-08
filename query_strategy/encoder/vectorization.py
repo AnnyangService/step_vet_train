@@ -94,8 +94,8 @@ if __name__ == "__main__":
     }
     
     # 입력 디렉토리와 결과 저장 경로 설정
-    input_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/generated/keratitis"
-    output_path = "/home/minelab/desktop/Jack/step_vet_train/datasets/vectors/generated_keratitis.npy"
+    input_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/origin/normal"
+    output_path = "/home/minelab/desktop/Jack/step_vet_train/datasets/vectors/normal.npy"
     
     # 벡터화 실행
     feature_vectors = vectorize_directory(
