@@ -12,7 +12,7 @@ import time
 from sklearn.metrics import confusion_matrix, accuracy_score
 
 # 데이터 경로 설정
-data_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/dataset_origin_1400"
+data_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/dataset_filtered_second_1400"
 train_dir = f"{data_dir}/train"
 val_dir = f"{data_dir}/val"
 
@@ -27,7 +27,7 @@ weight_decay = 1e-4
 # GPU 설정
 os.environ["CUDA_VISIBLE_DEVICES"] = "2,3"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-output_dir = "/home/minelab/desktop/Jack/step_vet_train/models/efficient_net/origin/1400"
+output_dir = "/home/minelab/desktop/Jack/step_vet_train/models/efficient_net/second_filtered/1400"
 os.makedirs(output_dir, exist_ok=True)
 
 # 데이터셋 전처리

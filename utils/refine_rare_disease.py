@@ -6,17 +6,29 @@ from pathlib import Path
 
 # Define paths
 base_dir = Path('/home/minelab/desktop/Jack/step_vet_train/datasets')
+# source_paths = {
+#     'blepharitis': base_dir / 'matching_filtered/blepharitis/filtered_images',
+#     'keratitis': base_dir / 'matching_filtered/keratitis/filtered_images'
+# }
+# origin_paths = {
+#     'blepharitis': base_dir / 'origin/blepharitis',
+#     'keratitis': base_dir / 'origin/keratitis'
+# }
+# dest_paths = {
+#     'blepharitis': base_dir / 'refined_dataset/matching/blepharitis',
+#     'keratitis': base_dir / 'refined_dataset/matching/keratitis'
+# }
 source_paths = {
     'blepharitis': base_dir / 'matching_filtered/blepharitis/filtered_images',
-    'keratitis': base_dir / 'matching_filtered/keratitis/filtered_images'
+    'keratitis': base_dir / 'matching_filtered/keratitis/second_stage_filtered/low_sim_images'
 }
 origin_paths = {
     'blepharitis': base_dir / 'origin/blepharitis',
     'keratitis': base_dir / 'origin/keratitis'
 }
 dest_paths = {
-    'blepharitis': base_dir / 'refined_matching/refined_dataset/blepharitis',
-    'keratitis': base_dir / 'refined_matching/refined_dataset/keratitis'
+    'blepharitis': base_dir / 'refined_dataset/second_matching/blepharitis',
+    'keratitis': base_dir / 'refined_dataset/second_matching/keratitis'
 }
 num_images = {
     'blepharitis': 2150,

@@ -29,14 +29,8 @@ This project must be executed in the following sequential order:
 3. **Query Strategy**
    - 제일 먼저 벡터화 query_strategy/encoder/vectorization.py 실행해서 이미지들 벡터화, 97, 98 line을 보면 input, output을 설정할 수 있는데 input 대상은 generated_keratitis, keratitis, generated_blepharitis, blepharitis 이런식으로 지정하면 됨.
    - 다음은 필터링. query_staretegy/filtering/vector_matching.py 혹은 query_staretegy/filtering/thresholding.py, 앞에꺼는 이미지 하나당 유사한 두 개의 이미지 뽑는 방법, 뒤에꺼는 원본 이미지의 평균 벡터와 모든 생성된 이미지 비교해서 코사인 유사도의 평균을 잡고, 그거보다 낮은 이미지 제거하는 방법
-   - 혹은 query_strategy/filtering/two_stage_vector_matching.py 이거는 selects images similar to the target class but dissimilar to other classes. 근데 하나의 origin image당 10000개의 generated image, 그 외 클래스 10000개 이렇게 하면 연산량이 수천만이 넘어가서 현실적으로 불가능. 그래서 2단계 접근법으로 설계함.
-   1단계 
-      각 원본 이미지와 모든 생성 이미지 간의 유사도만 계산
-      임계값(0.7) 이상인 이미지 중 상위 30%만 남김
-   2단계 
-   1단계에서 필터링된 이미지에 대해서만 다른 클래스와의 유사도 계산
-   다른 클래스와 유사한 이미지 제외(임계값 0.5 이상)
-   최종 멀티클래스 스코어 계산: (원본 유사도) - (다른 클래스 최대 유사도)
+   - 필터링한 뒤 한 번의 필터링 스텝이 더 남음. 일단 필터링된 이미지들에 대해 벡터를 다시 생성.
+   그리고 query_strategy/filtering/second_stage_vector_matching.py로 selects images dissimilar to other classes. 다른 클래스 벡터와 비교하여 각 이미지의 유사도를 계산하고 다른 클래스와 유사도가 낮은 순서로 정렬한 뒤 상위 50%만 선택하는 식으로 동작함. 이 부분은 실험해보고 효과 없으면 빼버려
 
 
 4. **진단 모델 학습 - YOLO**

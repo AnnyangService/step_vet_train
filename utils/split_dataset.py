@@ -24,7 +24,7 @@ def split_dataset(
     random.seed(seed)
     
     # Create dataset structure
-    dataset_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/dataset_origin_3100"
+    dataset_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/dataset"
     dataset_dir = Path(dataset_dir)
     if os.path.exists(dataset_dir):
         shutil.rmtree(dataset_dir)
@@ -51,9 +51,9 @@ def split_dataset(
         # Get target count for this class
         target_count = class_targets.get(class_name, target_total)
         
-        # Calculate split sizes (7:1.5:1.5 ratio)
-        target_val = int(target_count * 0.15)
-        target_test = int(target_count * 0.15)
+        # Calculate split sizes (8:1:1 ratio)
+        target_val = int(target_count * 0.1)
+        target_test = int(target_count * 0.1)
         target_train = target_count - target_val - target_test
         
         print(f"Target split for {class_name}:")
@@ -115,15 +115,15 @@ def split_dataset(
         print(f"  Total: {total}")
 
 if __name__ == "__main__":
-    source_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/refined_dataset/origin"
+    source_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/refined_dataset/matching"
     
     class_targets = {
-        "blepharitis": 3100,
-        "keratitis": 3100,
-        "normal": 3100,
-        "각막궤양": 3100,
-        "각막부골편": 3100,
-        "결막염": 3100
+        "blepharitis": 1400,
+        "keratitis": 1400,
+        "normal": 1400,
+        "각막궤양": 1400,
+        "각막부골편": 1400,
+        "결막염": 1400
     }
     
     split_dataset(source_dir, class_targets=class_targets)

@@ -15,7 +15,7 @@ plt.rcParams['font.family'] = 'NanumGothic'  # 나눔고딕 폰트 사용
 plt.rcParams['axes.unicode_minus'] = False  # 마이너스 기호 깨짐 방지
 
 # 데이터 경로 설정
-data_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/dataset_origin_1400"
+data_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/dataset_filtered_second_1400"
 val_dir = f"{data_dir}/val"
 test_dir = f"{data_dir}/test"
 
@@ -26,8 +26,8 @@ img_size = 224  # EfficientNet에서 요구하는 입력 크기
 # GPU 설정 (2번과 3번 GPU 사용)
 os.environ["CUDA_VISIBLE_DEVICES"] = "2,3"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model_path = "/home/minelab/desktop/Jack/step_vet_train/models/efficient_net/origin/1400/best_model.pth"
-output_dir = "/home/minelab/desktop/Jack/step_vet_train/models/efficient_net/origin/1400/evaluation"
+model_path = "/home/minelab/desktop/Jack/step_vet_train/models/efficient_net/second_filtered/1400/best_model.pth"
+output_dir = "/home/minelab/desktop/Jack/step_vet_train/models/efficient_net/second_filtered/1400/evaluation"
 os.makedirs(output_dir, exist_ok=True)
 
 # 데이터셋 전처리
