@@ -15,6 +15,8 @@ from torchvision.transforms import Compose, RandomHorizontalFlip, RandomRotation
 from transformers import ViTForImageClassification, ViTConfig
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 import torch.multiprocessing as mp
+import glob
+from pathlib import Path
 
 # 경로 추가
 import sys
@@ -23,6 +25,7 @@ sys.path.append('/home/minelab/desktop/')
 # 인코더 관련 모듈 가져오기
 from Jack.step_vet_train.query_strategy.encoder.utils.feature_extract import FeatureExtractor
 from Jack.step_vet_train.query_strategy.encoder.utils.channel_select import ChannelSelector
+from Jack.step_vet_train.query_strategy.encoder.vectorization import vectorize_directory
 
 # 불필요한 경고 무시
 warnings.filterwarnings("ignore", message="Was asked to gather along dimension 0, but all input tensors were scalars")
@@ -54,68 +57,78 @@ config = {
 # 멀티프로세싱 시작 방법을 'spawn'으로 설정 - CUDA 포크 오류 해결
 mp.set_start_method('spawn', force=True)
 
-# 커스텀 데이터셋 생성 (feature vector 사용)
-class FeatureVectorDataset(Dataset):
-    def __init__(self, image_dir, extractor, selector, transform=None):
-        self.image_dir = image_dir
-        self.transform = transform
-        self.extractor = extractor
-        self.selector = selector
+# 사전 벡터화된 특징 벡터를 사용하는 데이터셋
+class PrecomputedFeatureDataset(Dataset):
+    def __init__(self, vectors_dir):
+        self.vectors_dir = vectors_dir
         
-        # 클래스 정보 추출
-        dataset = datasets.ImageFolder(image_dir)
-        self.classes = dataset.classes
-        self.class_to_idx = dataset.class_to_idx
-        self.samples = dataset.samples
+        # 클래스별 벡터 파일 로드
+        self.class_vectors = {}
+        self.samples = []
+        self.classes = []
         
-        # 결과 저장을 위한 캐시
-        self.feature_cache = {}
+        # 벡터 디렉토리에서 클래스 이름 가져오기
+        for class_file in os.listdir(vectors_dir):
+            if class_file.endswith('.npy'):
+                class_name = os.path.splitext(class_file)[0]
+                self.classes.append(class_name)
+                
+                # 클래스별 벡터 로드
+                vectors_path = os.path.join(vectors_dir, class_file)
+                print(f"로드된 벡터 파일: {vectors_path}")
+                
+                # 벡터 파일 로드 및 형식 확인
+                vectors_data = np.load(vectors_path, allow_pickle=True)
+                
+                # 로드된 데이터가 딕셔너리인 경우 (vectorize_directory의 결과)
+                if isinstance(vectors_data, np.ndarray) and vectors_data.dtype == np.dtype('O') and isinstance(vectors_data.item(), dict):
+                    # 딕셔너리에서 벡터 추출 (경로 -> 벡터)
+                    vectors_dict = vectors_data.item()
+                    vectors = np.array(list(vectors_dict.values()))
+                    print(f"  딕셔너리 형식 감지: {len(vectors)}개 벡터")
+                else:
+                    # 기본 배열 형식
+                    vectors = vectors_data
+                    print(f"  배열 형식 감지: {len(vectors)}개 벡터")
+                
+                class_idx = len(self.class_vectors)
+                self.class_vectors[class_name] = {
+                    'vectors': vectors,
+                    'idx': class_idx
+                }
+                
+                # 샘플 정보 추가
+                for i in range(len(vectors)):
+                    self.samples.append((class_name, i, class_idx))
         
-        # 기본 차원 (첫 번째 이미지에서 추출)
-        self.vector_dim = 20  # 기본값 설정 (selector.scoring_config에서 top_k)
+        # 클래스 매핑 생성
+        self.class_to_idx = {cls: info['idx'] for cls, info in self.class_vectors.items()}
         
+        print(f"총 {len(self.samples)}개의 특징 벡터가 로드되었습니다.")
+        print(f"클래스: {self.classes}")
+        
+        if len(self.samples) == 0:
+            raise RuntimeError("유효한 특징 벡터가 있는 샘플이 없습니다.")
+        
+        # 벡터 차원 결정
+        first_class = self.classes[0]
+        first_vector = self.class_vectors[first_class]['vectors'][0]
+        self.vector_dim = first_vector.shape[0]
+        print(f"특징 벡터 차원: {self.vector_dim}")
+    
     def __len__(self):
         return len(self.samples)
     
     def __getitem__(self, idx):
-        image_path, label = self.samples[idx]
-        
-        # 이미 추출한 특징인지 확인
-        if image_path in self.feature_cache:
-            feature_vector = self.feature_cache[image_path]
-        else:
-            # 이미지에서 특징 추출
-            try:
-                features, _ = self.extractor.extract_features(image_path)
-                if features is None:
-                    # 문제가 있는 이미지는 0으로 채운 벡터 사용
-                    print(f"Feature extraction failed for {image_path}")
-                    feature_vector = torch.zeros(self.vector_dim)
-                else:
-                    # 채널 선택 및 벡터화
-                    feature_vector = self.selector.get_channel_vector(features)
-                    
-                    # 차원 동적 업데이트 (첫 성공적인 추출 시)
-                    if self.vector_dim == 20 and isinstance(feature_vector, np.ndarray):
-                        self.vector_dim = feature_vector.shape[0]
-                    
-                    feature_vector = torch.from_numpy(feature_vector).float()
-                
-                # 캐시에 저장
-                self.feature_cache[image_path] = feature_vector
-                
-            except Exception as e:
-                print(f"Error processing {image_path}: {str(e)}")
-                # 에러 발생 시 0으로 채운 벡터 사용
-                feature_vector = torch.zeros(self.vector_dim)
-                self.feature_cache[image_path] = feature_vector
-        
-        return feature_vector, label
+        class_name, vector_idx, label = self.samples[idx]
+        feature_vector = self.class_vectors[class_name]['vectors'][vector_idx]
+        return torch.from_numpy(feature_vector).float(), label
 
 # 데이터셋 경로 설정
 data_dir = "/home/minelab/desktop/Jack/step_vet_train/datasets/dataset"
-train_dir = f"{data_dir}/train"
-val_dir = f"{data_dir}/val"
+vectors_dir = f"{data_dir}/vectors"
+train_vectors_dir = f"{vectors_dir}/train"
+val_vectors_dir = f"{vectors_dir}/val"
 
 # 하이퍼파라미터 설정
 epochs = 50
@@ -129,36 +142,33 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 output_dir = "/home/minelab/desktop/Jack/step_vet_train/models/levit/"
 os.makedirs(output_dir, exist_ok=True)
 
-# 특징 추출기와 채널 선택기 초기화
-def initialize_feature_extractors():
-    # GPU ID 설정 (CUDA_VISIBLE_DEVICES로 이미 2,3번을 선택했으므로, 0번 인덱스는 실제 2번 GPU)
-    print(f"사용 가능한 GPU 수: {torch.cuda.device_count()}")
-    print(f"선택된 GPU 이름: {torch.cuda.get_device_name(0)}")
-    
-    extractor = FeatureExtractor(
-        checkpoint_path=config.get('checkpoint_path'),
-        gpu_id=0  # CUDA_VISIBLE_DEVICES="2,3"이므로 0은 실제 시스템의 2번 GPU
-    )
-    
-    selector = ChannelSelector(
-        padding_config=config.get('padding_config'),
-        scoring_config=config.get('scoring_config')
-    )
-    
-    return extractor, selector
-
 # 데이터 로더 생성
-def create_dataloaders(extractor, selector):
-    # 멀티프로세싱 워커 수 감소
-    num_workers = 1  # CUDA 포크 문제를 방지하기 위해 워커 수 감소
+def create_dataloaders():
+    # 사전 계산된 특징 벡터를 사용하는 데이터셋 생성
+    train_dataset = PrecomputedFeatureDataset(train_vectors_dir)
     
-    # 커스텀 데이터셋 생성
-    train_dataset = FeatureVectorDataset(train_dir, extractor, selector)
-    val_dataset = FeatureVectorDataset(val_dir, extractor, selector)
+    # 검증 데이터 처리 - 검증 디렉토리가 있으면 사용, 없으면 훈련 데이터 분할
+    if os.path.exists(val_vectors_dir):
+        val_dataset = PrecomputedFeatureDataset(val_vectors_dir)
+    else:
+        print(f"검증 벡터 디렉토리({val_vectors_dir})가 없습니다. 훈련 데이터의 20%를 검증 데이터로 사용합니다.")
+        # 훈련 데이터의 80%는 훈련용, 20%는 검증용으로 분할
+        train_size = int(0.8 * len(train_dataset))
+        val_size = len(train_dataset) - train_size
+        train_dataset, val_dataset = torch.utils.data.random_split(
+            train_dataset, [train_size, val_size]
+        )
     
-    # 클래스 수와 클래스 이름 가져오기
-    num_classes = len(train_dataset.classes)
-    class_names = train_dataset.classes
+    # 클래스 수와 클래스 이름 가져오기 (원본 train_dataset에서 가져옴)
+    if isinstance(train_dataset, torch.utils.data.Subset):
+        # Subset인 경우 dataset 속성으로 원본 데이터셋에 접근
+        original_dataset = train_dataset.dataset
+        num_classes = len(original_dataset.classes)
+        class_names = original_dataset.classes
+    else:
+        num_classes = len(train_dataset.classes)
+        class_names = train_dataset.classes
+        
     print(f"클래스 이름: {class_names}")
     print(f"클래스 수: {num_classes}")
     
@@ -166,21 +176,26 @@ def create_dataloaders(extractor, selector):
     id2label = {i: class_name for i, class_name in enumerate(class_names)}
     label2id = {class_name: i for i, class_name in enumerate(class_names)}
     
-    # DataLoader 생성
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    # feature_dim 가져오기 (원본 train_dataset에서)
+    if isinstance(train_dataset, torch.utils.data.Subset):
+        feature_dim = train_dataset.dataset.vector_dim
+    else:
+        feature_dim = train_dataset.vector_dim
     
-    return train_loader, val_loader, num_classes, class_names, id2label, label2id
+    # DataLoader 생성
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+    
+    return train_loader, val_loader, num_classes, class_names, id2label, label2id, feature_dim
 
 # 클래스별 이미지 수 계산 함수
-def count_images_per_class(dataset):
+def count_samples_per_class(dataset):
     counts = {}
-    for _, label_idx in dataset.samples:
-        label = dataset.classes[label_idx]
-        if label in counts:
-            counts[label] += 1
+    for class_name, _, _ in dataset.samples:
+        if class_name in counts:
+            counts[class_name] += 1
         else:
-            counts[label] = 1
+            counts[class_name] = 1
     return counts
 
 # 모델 생성 함수
@@ -190,10 +205,23 @@ def create_model(num_classes, id2label, label2id, feature_dim):
         def __init__(self, feature_dim, num_classes):
             super(LEViT, self).__init__()
             
-            # Feature vector를 처리하는 트랜스포머 블록
+            # 토큰화 및 위치 임베딩
+            self.token_dim = 256  # 내부 토큰 차원
+            self.num_tokens = 8   # 시퀀스 길이
+            
+            # 특징 벡터를 토큰 시퀀스로 변환
+            self.tokenizer = nn.Sequential(
+                nn.Linear(feature_dim, self.token_dim * self.num_tokens),
+                nn.GELU()
+            )
+            
+            # 위치 임베딩
+            self.pos_embedding = nn.Parameter(torch.randn(1, self.num_tokens, self.token_dim) * 0.02)
+            
+            # 트랜스포머 인코더
             self.transformer = nn.TransformerEncoder(
                 nn.TransformerEncoderLayer(
-                    d_model=feature_dim, 
+                    d_model=self.token_dim, 
                     nhead=8, 
                     dim_feedforward=2048,
                     dropout=0.1, 
@@ -203,26 +231,36 @@ def create_model(num_classes, id2label, label2id, feature_dim):
                 num_layers=6
             )
             
+            # 분류 토큰 ([CLS] 토큰)
+            self.cls_token = nn.Parameter(torch.randn(1, 1, self.token_dim) * 0.02)
+            
             # 분류기
             self.classifier = nn.Sequential(
-                nn.BatchNorm1d(feature_dim),
-                nn.Dropout(0.1),
-                nn.Linear(feature_dim, 512),
-                nn.ReLU(),
-                nn.BatchNorm1d(512),
-                nn.Dropout(0.1),
-                nn.Linear(512, num_classes)
+                nn.LayerNorm(self.token_dim),
+                nn.Linear(self.token_dim, num_classes)
             )
         
         def forward(self, x):
-            # 입력 형태 변환 (batch_size, feature_dim) -> (batch_size, 1, feature_dim)
-            x = x.unsqueeze(1)
+            batch_size = x.shape[0]
+            
+            # 특징 벡터를 토큰 시퀀스로 변환
+            x = self.tokenizer(x)
+            x = x.view(batch_size, self.num_tokens, self.token_dim)
+            
+            # 위치 임베딩 추가
+            x = x + self.pos_embedding
+            
+            # [CLS] 토큰 추가
+            cls_tokens = self.cls_token.expand(batch_size, -1, -1)
+            x = torch.cat((cls_tokens, x), dim=1)
             
             # 트랜스포머 통과
             x = self.transformer(x)
             
-            # 분류기 통과 (첫 번째 토큰만 사용)
-            x = x.squeeze(1)
+            # [CLS] 토큰만 사용하여 분류
+            x = x[:, 0]
+            
+            # 분류기 통과
             logits = self.classifier(x)
             
             return logits
@@ -236,6 +274,9 @@ def create_model(num_classes, id2label, label2id, feature_dim):
             nn.init.xavier_uniform_(m.weight)
             if m.bias is not None:
                 nn.init.zeros_(m.bias)
+        elif isinstance(m, nn.LayerNorm):
+            nn.init.ones_(m.weight)
+            nn.init.zeros_(m.bias)
     
     model.apply(init_weights)
     
@@ -520,19 +561,9 @@ def main():
     print(f"Using device: {device}")
     print("Starting LEViT (Lesion Encoder Vision Transformer) training")
     
-    # 특징 추출기 초기화
-    print("Initializing feature extractors...")
-    extractor, selector = initialize_feature_extractors()
-    
     # 데이터 로더 생성
     print("Creating data loaders...")
-    train_loader, val_loader, num_classes, class_names, id2label, label2id = create_dataloaders(extractor, selector)
-    
-    # 특징 벡터 차원 확인 (첫 번째 배치에서 추출)
-    for features, _ in train_loader:
-        feature_dim = features.shape[1]
-        print(f"Feature vector dimension: {feature_dim}")
-        break
+    train_loader, val_loader, num_classes, class_names, id2label, label2id, feature_dim = create_dataloaders()
     
     # 모델 생성
     print("Creating LEViT model...")
