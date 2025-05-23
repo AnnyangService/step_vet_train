@@ -2,6 +2,7 @@ import os
 import shutil
 import random
 from pathlib import Path
+from collections import Counter
 
 def create_directory(path):
     os.makedirs(path, exist_ok=True)
@@ -21,14 +22,22 @@ def copy_files(source_files, source_dir, target_dir, class_name):
 def main():
     random.seed(42)
 
-    # 클래스별 데이터 개수 지정 (1:1 비율)
-    total_images = 5000  # 전체 데이터 수 (inflammatory + corneal_disease)
-    num_images = {
-        'inflammatory': total_images // 2,    # 염증류(blepharitis+keratitis+conjunctivitis)
-        'corneal_disease': total_images // 2  # corneal disease(각막궤양+각막부골편)
+    # 각 질병별 사용할 이미지 수를 직접 지정
+    disease_image_counts = {
+        'blepharitis': 1500,
+        'keratitis': 1500,
+        'conjunctivitis': 1500,
+        '각막궤양': 2250,
+        '각막부골편': 2250
     }
     val_count = 150
     test_count = 150
+
+    # inflammatory/corneal_disease 클래스별 총 이미지 수 자동 계산
+    num_images = {
+        'inflammatory': disease_image_counts['blepharitis'] + disease_image_counts['keratitis'] + disease_image_counts['conjunctivitis'],
+        'corneal_disease': disease_image_counts['각막궤양'] + disease_image_counts['각막부골편']
+    }
 
     # Base directories
     base_dir = Path("/home/minelab/desktop/Jack/step_vet_train/datasets")
@@ -54,25 +63,23 @@ def main():
     filtered_blepharitis_files = [f for f in os.listdir(filtered_blepharitis_dir) if f.endswith('.jpg') or f.endswith('.png')]
     filtered_keratitis_files = [f for f in os.listdir(filtered_keratitis_dir) if f.endswith('.jpg') or f.endswith('.png')]
 
-    # 각 질환별로 균등하게 샘플링 (가능한 경우)
-    per_class = num_images['inflammatory'] // 3
     # blepharitis
-    needed_blepharitis = max(0, per_class - len(blepharitis_files))
+    needed_blepharitis = max(0, disease_image_counts['blepharitis'] - len(blepharitis_files))
     if needed_blepharitis > 0:
         blepharitis_files.extend(get_random_files(filtered_blepharitis_dir, needed_blepharitis))
     else:
-        blepharitis_files = random.sample(blepharitis_files, per_class)
+        blepharitis_files = random.sample(blepharitis_files, disease_image_counts['blepharitis'])
     # keratitis
-    needed_keratitis = max(0, per_class - len(keratitis_files))
+    needed_keratitis = max(0, disease_image_counts['keratitis'] - len(keratitis_files))
     if needed_keratitis > 0:
         keratitis_files.extend(get_random_files(filtered_keratitis_dir, needed_keratitis))
     else:
-        keratitis_files = random.sample(keratitis_files, per_class)
+        keratitis_files = random.sample(keratitis_files, disease_image_counts['keratitis'])
     # conjunctivitis
-    if len(conjunctivitis_files) < per_class:
+    if len(conjunctivitis_files) < disease_image_counts['conjunctivitis']:
         raise ValueError("결막염 이미지가 부족합니다.")
     else:
-        conjunctivitis_files = random.sample(conjunctivitis_files, per_class)
+        conjunctivitis_files = random.sample(conjunctivitis_files, disease_image_counts['conjunctivitis'])
     inflammatory_files = [("blepharitis", f) for f in blepharitis_files] + [("keratitis", f) for f in keratitis_files] + [("conjunctivitis", f) for f in conjunctivitis_files]
     random.shuffle(inflammatory_files)
     # seed 파일 분리 (blepharitis, keratitis 모두)
@@ -84,13 +91,12 @@ def main():
     fb_dir = origin_dir / '각막부골편'
     ulcer_files = [f for f in os.listdir(ulcer_dir) if f.endswith('.jpg') or f.endswith('.png')]
     fb_files = [f for f in os.listdir(fb_dir) if f.endswith('.jpg') or f.endswith('.png')]
-    per_corneal = num_images['corneal_disease'] // 2
-    if len(ulcer_files) < per_corneal:
+    if len(ulcer_files) < disease_image_counts['각막궤양']:
         raise ValueError("각막궤양 이미지가 부족합니다.")
-    if len(fb_files) < per_corneal:
+    if len(fb_files) < disease_image_counts['각막부골편']:
         raise ValueError("각막부골편 이미지가 부족합니다.")
-    ulcer_files = random.sample(ulcer_files, per_corneal)
-    fb_files = random.sample(fb_files, per_corneal)
+    ulcer_files = random.sample(ulcer_files, disease_image_counts['각막궤양'])
+    fb_files = random.sample(fb_files, disease_image_counts['각막부골편'])
     corneal_files = [("각막궤양", f) for f in ulcer_files] + [("각막부골편", f) for f in fb_files]
     random.shuffle(corneal_files)
 
@@ -152,6 +158,21 @@ def main():
                     src_dir = origin_dir / src
                     dst = os.path.join(output_base, split, class_name, file)
                     shutil.copy2(os.path.join(src_dir, file), dst)
+
+    # === 세부 클래스별 포함 개수 출력 ===
+    print("\n[Split별 세부 클래스별 이미지 개수]")
+    for split in splits:
+        print(f"\n[{split.upper()}]")
+        for class_name in classes:
+            files = split_map[split][class_name]
+            if class_name == 'inflammatory':
+                sub_counts = Counter([src for src, _ in files])
+                print(f"  {class_name}: {sum(sub_counts.values())}개", end='  ')
+                print(', '.join([f"{k}: {v}" for k, v in sub_counts.items()]))
+            else:
+                sub_counts = Counter([src for src, _ in files])
+                print(f"  {class_name}: {sum(sub_counts.values())}개", end='  ')
+                print(', '.join([f"{k}: {v}" for k, v in sub_counts.items()]))
 
 if __name__ == "__main__":
     main() 
